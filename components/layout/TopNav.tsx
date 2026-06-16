@@ -5,25 +5,16 @@
 // =============================================================================
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Menu, Moon, Sun, RefreshCw, AlertTriangle, Settings, PanelLeft } from 'lucide-react';
+import { Bell, Menu, Moon, Sun, RefreshCw, PanelLeft } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useWeatherStore } from '@/store/weatherStore';
 import { useAlertStore } from '@/store/alertStore';
 import { LiveClock } from '@/components/shared/LiveClock';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { AlertNavPanel } from '@/components/alerts/AlertNavPanel';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 
 const ROUTE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'AQUA Assistant', subtitle: 'FloodWatch Semarang · BMKG' },
@@ -44,9 +35,9 @@ export function TopNav() {
   const theme = useUIStore((s) => s.theme);
   const updateCount = useWeatherStore((s) => s.updateCount);
   const alerts = useAlertStore((s) => s.alerts);
-  const markAsRead = useAlertStore((s) => s.markAsRead);
   const unreadCount = useAlertStore((s) => s.getUnreadCount());
-  const activeAlerts = alerts.filter((a) => a.status === 'active').slice(0, 5);
+  const activeCount = alerts.filter((a) => a.status === 'active').length;
+  const [alertPanelOpen, setAlertPanelOpen] = useState(false);
 
   const routeInfo = ROUTE_TITLES[pathname] ?? ROUTE_TITLES['/dashboard'];
 
@@ -144,80 +135,58 @@ export function TopNav() {
           <TooltipContent>Ganti tema</TooltipContent>
         </Tooltip>
 
-        {/* Alert Bell */}
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 outline-none" render={
-            <Button variant="ghost" size="icon" className="relative shrink-0" id="alert-bell-btn" />
-          }>
+        {/* Alert Bell — panel hanya muncul saat diklik */}
+        <div className="relative">
+          <Tooltip>
+            <TooltipTrigger className="outline-none" render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative shrink-0"
+                id="alert-bell-btn"
+                onClick={() => setAlertPanelOpen((o) => !o)}
+                aria-expanded={alertPanelOpen}
+                aria-label="Peringatan dini banjir"
+              />
+            }>
               <Bell size={16} />
-              {unreadCount > 0 && (
+              {(unreadCount > 0 || activeCount > 0) && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full flex items-center justify-center"
                 >
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                  {(unreadCount || activeCount) > 9 ? '9+' : unreadCount || activeCount}
                 </motion.span>
               )}
-          </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>Lihat peringatan dini</TooltipContent>
+          </Tooltip>
 
-          <DropdownMenuContent align="end" className="w-80 fw-glass">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="flex items-center justify-between">
-                <span>Notifikasi Aktif</span>
-                {unreadCount > 0 && (
-                  <Badge variant="destructive" className="text-[10px] h-5">
-                    {unreadCount} belum dibaca
-                  </Badge>
-                )}
-              </DropdownMenuLabel>
-
-              {activeAlerts.length === 0 ? (
-                <div className="py-6 text-center text-sm text-muted-foreground px-2">
-                  <Bell size={24} className="mx-auto mb-2 opacity-30" />
-                  Tidak ada alert aktif
-                </div>
-              ) : (
-                activeAlerts.map((alert) => (
-                  <DropdownMenuItem
-                    key={alert.id}
-                    className="flex flex-col items-start gap-1 p-3 cursor-pointer"
-                    onClick={() => markAsRead(alert.id)}
-                  >
-                    <div className="flex items-start gap-2 w-full">
-                      <AlertTriangle
-                        size={14}
-                        className={
-                          alert.severity === 'emergency' ? 'text-red-400 mt-0.5 shrink-0' :
-                          alert.severity === 'critical' ? 'text-orange-400 mt-0.5 shrink-0' :
-                          'text-yellow-400 mt-0.5 shrink-0'
-                        }
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{alert.daerah}</p>
-                        <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">{alert.message}</p>
-                      </div>
-                      {!alert.read && (
-                        <div className="w-1.5 h-1.5 bg-primary rounded-full shrink-0 mt-1" />
-                      )}
-                    </div>
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuGroup>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuGroup>
-              <DropdownMenuItem className="p-0">
-                <Link href="/settings" className="flex items-center gap-2 w-full h-full px-2 py-1.5">
-                  <Settings size={14} className="text-muted-foreground" />
-                  <span>Pengaturan</span>
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <AnimatePresence>
+            {alertPanelOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-40"
+                  aria-hidden
+                  onClick={() => setAlertPanelOpen(false)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute right-0 top-full mt-2 z-50 w-[min(100vw-2rem,400px)] rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-2xl p-4"
+                >
+                  <AlertNavPanel onClose={() => setAlertPanelOpen(false)} />
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </header>
   );
