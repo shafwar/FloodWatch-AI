@@ -128,12 +128,12 @@ export function MapPageClient() {
           </div>
         </div>
 
-        <div className="flex-1 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
-          <div className="p-3 border-b border-border">
+        <div className="flex-1 rounded-xl border border-border bg-card overflow-hidden flex flex-col min-h-0">
+          <div className="p-3 border-b border-border shrink-0">
             <p className="text-xs font-semibold text-foreground">Titik Pantau</p>
             <p className="text-[10px] text-muted-foreground">{filteredData.length} lokasi</p>
           </div>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="p-2 space-y-1">
               {filteredData.map(({ loc, record, score, level, risk, cond }) => (
                 <button

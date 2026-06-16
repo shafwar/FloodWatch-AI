@@ -206,13 +206,13 @@ export function AnalyticsPageClient() {
   const locationData = useMemo(() => {
     return MONITORING_LOCATIONS.map((loc) => {
       const records = historicalRecords.filter((r) => r.daerah === loc.name);
-      const avgTemp = average(records.map((r) => r.suhu_c));
-      const avgHumidity = average(records.map((r) => r.kelembapan));
+      const avgTemp = records.length ? average(records.map((r) => r.suhu_c)) : 0;
+      const avgHumidity = records.length ? average(records.map((r) => r.kelembapan)) : 0;
       const risks = records.map((r) =>
         calculateFloodRisk(r.kondisi as WeatherCondition, r.kelembapan)
       );
-      const avgRisk = average(risks);
-      const maxRisk = Math.max(...risks, 0);
+      const avgRisk = risks.length ? average(risks) : 0;
+      const maxRisk = risks.length ? Math.max(...risks) : 0;
 
       return {
         name: loc.kelurahan,
@@ -220,6 +220,7 @@ export function AnalyticsPageClient() {
         avgTemp: Math.round(avgTemp * 10) / 10,
         avgHumidity: Math.round(avgHumidity),
         avgRisk: Math.round(avgRisk),
+        chartRisk: Math.round(avgRisk) || 0.1, // Prevent Recharts bug with radius on 0-value bars
         maxRisk,
         level: calculateRiskLabel(Math.round(avgRisk)),
       };
@@ -547,7 +548,7 @@ export function AnalyticsPageClient() {
         ]}
         delay={0.3}
       >
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={Math.max(300, locationData.length * 35 + 40)}>
           <BarChart data={locationData} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
             <XAxis
@@ -565,8 +566,10 @@ export function AnalyticsPageClient() {
               tickLine={false}
               axisLine={false}
               width={90}
+              interval={0}
             />
             <Tooltip
+              cursor={{ fill: 'var(--muted)', opacity: 0.2 }}
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 const d = payload[0].payload as (typeof locationData)[0];
@@ -581,7 +584,7 @@ export function AnalyticsPageClient() {
                 );
               }}
             />
-            <Bar dataKey="avgRisk" name="Rata-rata Risiko" radius={[0, 6, 6, 0]} barSize={14}>
+            <Bar dataKey="chartRisk" name="Rata-rata Risiko" radius={[0, 6, 6, 0]} barSize={14}>
               {locationData.map((entry, index) => (
                 <Cell
                   key={index}
