@@ -3,8 +3,7 @@
 // Core risk calculation engine based on weather condition + humidity
 // =============================================================================
 
-import type { WeatherCondition, FloodLevel, FloodRiskResult, FloodAlert, AlertSeverity } from '@/types';
-import { CONDITION_CONFIG } from '@/lib/weatherConditions';
+import type { WeatherCondition, FloodLevel, FloodRiskResult } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Base Risk Scores (per specification)
@@ -90,56 +89,10 @@ export function getFloodLevel(kondisi: WeatherCondition, kelembapan: number): Fl
 }
 
 // ---------------------------------------------------------------------------
-// Alert Generator
+// Alert Generator — re-export from IoT fusion module
 // ---------------------------------------------------------------------------
 
-/**
- * Generate a FloodAlert message based on detected condition + location.
- */
-export function generateAlert(
-  locationId: string,
-  daerah: string,
-  kondisi: WeatherCondition,
-  kelembapan: number,
-  id?: string
-): FloodAlert | null {
-  const score = calculateFloodRisk(kondisi, kelembapan);
-  const level = calculateRiskLabel(score);
-  const isRain = kondisi.toLowerCase().includes('hujan');
-
-  // Alert untuk WASPADA+ atau kondisi hujan aktif
-  if (score < 40 && !isRain) return null;
-
-  let severity: AlertSeverity;
-  if (score >= 90) severity = 'emergency';
-  else if (score >= 70) severity = 'critical';
-  else if (score >= 40 || isRain) severity = 'warning';
-  else severity = 'information';
-
-  const kondisiConfig = CONDITION_CONFIG[kondisi];
-  const icon = kondisiConfig?.icon ?? '🌧️';
-
-  const messages: Record<FloodLevel, string> = {
-    AMAN: '',
-    WASPADA: `${icon} ${kondisi} terdeteksi di ${daerah}. Kelembapan ${kelembapan}%. Status WASPADA.`,
-    SIAGA: `⚠️ ${kondisi} terdeteksi di ${daerah}. Kelembapan ${kelembapan}%. Status SIAGA — Waspada potensi banjir!`,
-    BAHAYA: `🚨 DARURAT: ${kondisi} terdeteksi di ${daerah}. Kelembapan ${kelembapan}%. Status BAHAYA — Segera evakuasi!`,
-  };
-
-  return {
-    id: id ?? `alert-${Date.now()}-${locationId}`,
-    locationId,
-    daerah,
-    kondisi,
-    floodLevel: level,
-    floodScore: score,
-    severity,
-    status: 'active',
-    message: messages[level],
-    timestamp: new Date().toISOString(),
-    read: false,
-  };
-}
+export { generateAlert, generateFusedAlert } from '@/lib/iot/alertGenerator';
 
 // ---------------------------------------------------------------------------
 // Batch Risk Assessment

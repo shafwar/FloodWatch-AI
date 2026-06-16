@@ -4,6 +4,7 @@
 
 import type { FloodAlert, AlertSeverity, AlertStatus, FloodLevel, WeatherCondition } from '@/types';
 import { MONITORING_LOCATIONS } from '@/lib/locations';
+import { getPreventionActions } from '@/lib/iot/preventionGuide';
 
 function minutesAgo(minutes: number): string {
   const d = new Date('2026-06-10T00:00:00Z');
@@ -252,7 +253,12 @@ function generateExtraAlerts(): AlertTemplate[] {
 export const MOCK_ALERTS: FloodAlert[] = [
   ...ALERT_TEMPLATES,
   ...generateExtraAlerts(),
-].map((t, idx) => ({ ...t, id: `alert-${idx + 1}` }));
+].map((t, idx) => ({
+  ...t,
+  id: `alert-${idx + 1}`,
+  source: 'weather' as const,
+  preventionActions: getPreventionActions(t.floodLevel),
+}));
 
 export const ACTIVE_ALERTS = MOCK_ALERTS.filter((a) => a.status === 'active');
 export const UNREAD_ALERTS = MOCK_ALERTS.filter((a) => !a.read);

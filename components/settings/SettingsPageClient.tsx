@@ -164,7 +164,8 @@ export function SettingsPageClient() {
           <h3 className="font-semibold text-sm">Monitoring & Notifikasi</h3>
         </div>
         <p className="text-xs text-muted-foreground mb-3">
-          Alert otomatis muncul saat skor risiko ≥ WASPADA (40) atau kondisi hujan terdeteksi.
+          Alert otomatis dari data fusion BMKG + sensor IoT virtual. Tindakan pencegahan disertakan
+          per level risiko (WASPADA → BAHAYA).
         </p>
 
         <SettingRow
@@ -199,8 +200,24 @@ export function SettingsPageClient() {
         </SettingRow>
 
         <SettingRow
+          label="Notifikasi Browser"
+          description="Pop-up sistem saat alert SIAGA/BAHAYA (perlu izin browser)"
+        >
+          <Toggle
+            id="toggle-browserNotifications"
+            checked={settings.browserNotifications}
+            onChange={async () => {
+              if (!settings.browserNotifications && typeof Notification !== 'undefined') {
+                await Notification.requestPermission();
+              }
+              updateSettings({ browserNotifications: !settings.browserNotifications });
+            }}
+          />
+        </SettingRow>
+
+        <SettingRow
           label="Suara Alert"
-          description="Bunyi saat alert darurat (BAHAYA)"
+          description="Bunyi saat alert darurat (SIAGA/BAHAYA)"
         >
           <Toggle
             id="toggle-soundAlerts"
@@ -239,6 +256,7 @@ export function SettingsPageClient() {
             { label: 'Sumber Aktif', value: sourceLabel },
             { label: 'Source Code', value: (activeSource ?? meta?.source ?? '—').toUpperCase() },
             { label: 'AI Assistant', value: 'AQUA (Gemini)' },
+            { label: 'IoT Nodes', value: '4 Virtual (ESP32 sim)' },
             { label: 'Titik Pantau', value: '10 Kelurahan Semarang' },
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between gap-3 py-1.5 border-b border-border/30">

@@ -6,6 +6,7 @@
 // =============================================================================
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AlertNotificationProvider } from '@/components/alerts/AlertNotificationProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useState, useEffect } from 'react';
 import { useUIStore } from '@/store/uiStore';
@@ -42,6 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delay={0}>
         <ThemeInitializer />
+        <AlertNotificationProvider />
         {children}
       </TooltipProvider>
     </QueryClientProvider>

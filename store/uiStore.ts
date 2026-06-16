@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   refreshInterval: 60,
   mapStyle: 'standard',
   notifications: true,
+  browserNotifications: false,
   soundAlerts: false,
   autoCenter: true,
 };

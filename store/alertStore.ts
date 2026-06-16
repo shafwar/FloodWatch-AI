@@ -58,7 +58,21 @@ export const useAlertStore = create<AlertState>()(
         ),
       })),
 
-    setAlerts: (alerts) => set({ alerts }),
+    setAlerts: (alerts) =>
+      set((state) => {
+        const prevMap = new Map(state.alerts.map((a) => [a.id, a]));
+        const merged = alerts.map((incoming) => {
+          const prev = prevMap.get(incoming.id);
+          if (!prev) return incoming;
+          return {
+            ...incoming,
+            read: prev.read,
+            status: prev.status === 'resolved' || prev.status === 'acknowledged' ? prev.status : incoming.status,
+            resolvedAt: prev.resolvedAt,
+          };
+        });
+        return { alerts: merged };
+      }),
 
     getActiveAlerts: () => get().alerts.filter((a) => a.status === 'active'),
     getUnreadCount: () => get().alerts.filter((a) => !a.read).length,

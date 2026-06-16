@@ -66,6 +66,23 @@ export interface FloodRiskResult {
 export type AlertSeverity = 'information' | 'warning' | 'critical' | 'emergency';
 export type AlertStatus = 'active' | 'resolved' | 'acknowledged';
 
+export type AlertSource = 'weather' | 'sensor' | 'fusion';
+
+export type PreventionCategory =
+  | 'evakuasi'
+  | 'mitigasi'
+  | 'infrastruktur'
+  | 'komunikasi'
+  | 'kesehatan';
+
+export interface PreventionAction {
+  id: string;
+  category: PreventionCategory;
+  priority: 'tinggi' | 'sedang' | 'rendah';
+  title: string;
+  description: string;
+}
+
 export interface FloodAlert {
   id: string;
   locationId: string;
@@ -79,6 +96,66 @@ export interface FloodAlert {
   timestamp: string;
   resolvedAt?: string;
   read: boolean;
+  source: AlertSource;
+  nodeId?: string;
+  preventionActions: PreventionAction[];
+  sensorSnapshot?: {
+    waterLevelPercent: number;
+    rainfallMm: number;
+    humidity: number;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// IoT Sensor Types
+// ---------------------------------------------------------------------------
+
+export type NodeStatus = 'online' | 'offline' | 'degraded';
+
+export interface IoTSensorNode {
+  id: string;
+  nodeId: string;
+  locationId: string;
+  name: string;
+  lat: number;
+  lng: number;
+  status: NodeStatus;
+  batteryPercent: number;
+  signalStrength: number;
+  lastSeen: string;
+  firmware: string;
+  protocol: 'MQTT' | 'HTTP';
+}
+
+export interface SensorReading {
+  nodeId: string;
+  locationId: string;
+  daerah: string;
+  timestamp: string;
+  waterLevelCm: number;
+  channelCapacityPercent: number;
+  rainfallMm: number;
+  temperature: number;
+  humidity: number;
+}
+
+export interface SensorHistoryPoint {
+  timestamp: string;
+  waterLevelPercent: number;
+  rainfallMm: number;
+}
+
+export interface SensorApiResponse {
+  nodes: IoTSensorNode[];
+  readings: SensorReading[];
+  history: Record<string, SensorHistoryPoint[]>;
+  meta: {
+    mode: 'simulation';
+    nodeCount: number;
+    onlineCount: number;
+    fetchedAt: string;
+    protocol: string;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -202,6 +279,7 @@ export interface AppSettings {
   refreshInterval: number; // seconds
   mapStyle: 'standard' | 'satellite' | 'terrain';
   notifications: boolean;
+  browserNotifications: boolean;
   soundAlerts: boolean;
   autoCenter: boolean;
 }

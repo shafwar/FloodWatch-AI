@@ -13,6 +13,7 @@ import {
   Waves,
   Radio,
   X,
+  Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/uiStore';
@@ -24,7 +25,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard',   icon: LayoutDashboard, description: 'Executive overview' },
   { href: '/map',       label: 'Peta GIS',     icon: Map,             description: 'Interactive flood map' },
-  { href: '/alerts',    label: 'Alert Center', icon: Bell,            description: 'Alert management' },
+  { href: '/sensors',   label: 'Sensor IoT',   icon: Cpu,             description: 'Virtual node telemetry' },
+  { href: '/alerts',    label: 'Alert Center', icon: Bell,            description: 'Alert & prevention' },
   { href: '/analytics', label: 'Analytics',    icon: BarChart3,       description: 'Trend analysis' },
   { href: '/history',   label: 'Riwayat',      icon: History,         description: 'Historical data' },
   { href: '/settings',  label: 'Pengaturan',   icon: Settings,        description: 'System settings' },
@@ -238,7 +240,7 @@ export function Sidebar({ className }: SidebarProps) {
                       <Radio size={12} className="text-primary animate-pulse" />
                       <span>IoT Monitoring Active</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">10 Titik Pantau Aktif</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">4 Node IoT · 10 Titik BMKG</p>
                   </div>
                 </div>
               )}

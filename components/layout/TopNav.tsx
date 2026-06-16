@@ -28,7 +28,8 @@ import Link from 'next/link';
 const ROUTE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'AQUA Assistant', subtitle: 'FloodWatch Semarang · BMKG' },
   '/map':       { title: 'Peta GIS Interaktif', subtitle: 'Visualisasi geospasial titik pantau banjir' },
-  '/alerts':    { title: 'Alert Center',         subtitle: 'Manajemen notifikasi & peringatan dini banjir' },
+  '/sensors':  { title: 'Sensor IoT',           subtitle: 'Telemetri virtual node AQUA-SENSE · data fusion' },
+  '/alerts':    { title: 'Alert Center',         subtitle: 'Notifikasi peringatan dini & tindakan pencegahan' },
   '/analytics': { title: 'Analytics',            subtitle: 'Analisis tren cuaca dan risiko banjir' },
   '/history':   { title: 'Riwayat Data',         subtitle: 'Data historis kondisi cuaca & banjir' },
   '/settings':  { title: 'Pengaturan',           subtitle: 'Konfigurasi sistem monitoring' },

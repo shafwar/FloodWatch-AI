@@ -16,7 +16,14 @@ import { RiskBadge } from '@/components/shared/RiskBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatDateTime, exportToCSV } from '@/lib/utils';
-import type { AlertSeverity, AlertStatus } from '@/types';
+import { PreventionPanel } from '@/components/alerts/PreventionPanel';
+import type { AlertSeverity, AlertStatus, AlertSource } from '@/types';
+
+const SOURCE_LABEL: Record<AlertSource, string> = {
+  weather: 'BMKG',
+  sensor: 'Sensor IoT',
+  fusion: 'Data Fusion',
+};
 
 const SEVERITY_CONFIG: Record<AlertSeverity, {
   label: string; color: string; bgColor: string; borderColor: string; icon: typeof AlertTriangle
@@ -203,7 +210,21 @@ export function AlertsPageClient() {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground leading-snug">{alert.message}</p>
+                      {alert.sensorSnapshot && (
+                        <p className="text-[11px] text-muted-foreground/80 mt-1">
+                          IoT: air {alert.sensorSnapshot.waterLevelPercent}% · hujan{' '}
+                          {alert.sensorSnapshot.rainfallMm} mm/jam
+                        </p>
+                      )}
+                      {alert.status === 'active' && alert.preventionActions.length > 0 && (
+                        <div className="mt-3">
+                          <PreventionPanel actions={alert.preventionActions} compact />
+                        </div>
+                      )}
                       <div className="flex items-center gap-3 mt-2">
+                        <Badge variant="outline" className="text-[10px] h-5">
+                          {SOURCE_LABEL[alert.source]}
+                        </Badge>
                         <span className="flex items-center gap-1 text-[11px] text-muted-foreground/70">
                           <Clock size={10} />
                           {formatDateTime(alert.timestamp)}

@@ -1,18 +1,17 @@
 'use client';
 
 // =============================================================================
-// FloodWatch Semarang — BMKG Sync + Background Recovery
-// - Fetches BMKG on mount & at each 3-hour slot boundary
-// - Polls at user refresh interval for live chart/alert updates
-// - When BMKG offline/degraded: probes every 5 min to auto-recover
+// FloodWatch Semarang — BMKG Sync + IoT Sensor + Alert Fusion
 // =============================================================================
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useWeatherStore } from '@/store/weatherStore';
 import { useAlertStore } from '@/store/alertStore';
+import { useSensorStore } from '@/store/sensorStore';
 import { useUIStore } from '@/store/uiStore';
-import { LOCATION_BY_NAME } from '@/lib/locations';
-import { generateAlert } from '@/lib/floodRiskEngine';
+import { LOCATION_BY_NAME, MONITORING_LOCATIONS } from '@/lib/locations';
+import { SENSOR_NODE_BY_LOCATION } from '@/lib/iot/sensorNodes';
+import { generateFusedAlert } from '@/lib/iot/alertGenerator';
 import { msUntilNextSlotBoundary } from '@/lib/weather/slots';
 import type { WeatherCondition } from '@/types';
 
@@ -24,6 +23,8 @@ export function useRealtime() {
   const getCurrentRecords = useWeatherStore((s) => s.getCurrentRecords);
   const meta = useWeatherStore((s) => s.meta);
   const setAlerts = useAlertStore((s) => s.setAlerts);
+  const fetchSensors = useSensorStore((s) => s.fetchSensors);
+  const sensorReadings = useSensorStore((s) => s.readings);
   const notificationsEnabled = useUIStore((s) => s.settings.notifications);
   const refreshIntervalSec = useUIStore((s) => s.settings.refreshInterval);
 
@@ -39,29 +40,58 @@ export function useRealtime() {
     }
 
     const currentRecords = getCurrentRecords();
+    const readingByLocation = Object.fromEntries(
+      sensorReadings.map((r) => [r.locationId, r])
+    );
+
     const alerts = currentRecords
       .map((r) => {
         const loc = LOCATION_BY_NAME[r.daerah];
         if (!loc) return null;
-        return generateAlert(
+        const sensorReading = readingByLocation[loc.id];
+        return generateFusedAlert(
           loc.id,
           r.daerah,
           r.kondisi as WeatherCondition,
           r.kelembapan,
+          sensorReading,
           `alert-${loc.id}-${r.kondisi}`
         );
       })
       .filter((a): a is NonNullable<typeof a> => a !== null);
 
+    // Also check IoT-only alerts for sensor nodes without weather match
+    for (const node of Object.values(SENSOR_NODE_BY_LOCATION)) {
+      const reading = readingByLocation[node.locationId];
+      if (!reading || reading.channelCapacityPercent < 55) continue;
+
+      const loc = MONITORING_LOCATIONS.find((l) => l.id === node.locationId);
+      const weatherRec = currentRecords.find((r) => LOCATION_BY_NAME[r.daerah]?.id === node.locationId);
+      if (!loc || !weatherRec) continue;
+
+      const existing = alerts.find((a) => a.locationId === node.locationId);
+      if (existing) continue;
+
+      const sensorAlert = generateFusedAlert(
+        loc.id,
+        loc.name,
+        weatherRec.kondisi as WeatherCondition,
+        weatherRec.kelembapan,
+        reading,
+        `alert-sensor-${node.id}`
+      );
+      if (sensorAlert) alerts.push(sensorAlert);
+    }
+
     setAlerts(alerts);
-  }, [getCurrentRecords, setAlerts, notificationsEnabled]);
+  }, [getCurrentRecords, sensorReadings, setAlerts, notificationsEnabled]);
 
   const refreshWeather = useCallback(
     async (options?: { probe?: boolean }) => {
-      await fetchWeather(options);
+      await Promise.all([fetchWeather(options), fetchSensors()]);
       syncAlertsFromRecords();
     },
-    [fetchWeather, syncAlertsFromRecords]
+    [fetchWeather, fetchSensors, syncAlertsFromRecords]
   );
 
   const scheduleNextSlotSync = useCallback(() => {
@@ -91,7 +121,6 @@ export function useRealtime() {
     }
   }, []);
 
-  // Poll interval dari pengaturan — chart & alert ikut ter-update
   useEffect(() => {
     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
 
@@ -105,10 +134,9 @@ export function useRealtime() {
     };
   }, [refreshIntervalSec, refreshWeather]);
 
-  // Re-sync alert saat toggle notifikasi berubah
   useEffect(() => {
     syncAlertsFromRecords();
-  }, [notificationsEnabled, syncAlertsFromRecords]);
+  }, [notificationsEnabled, sensorReadings, syncAlertsFromRecords]);
 
   useEffect(() => {
     if (meta?.bmkgStatus === 'online') {
